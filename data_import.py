@@ -1,6 +1,6 @@
 # Setup
 import numpy as np
-import pandas as pd
+# import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -28,8 +28,8 @@ Returns:
 # Import data from ascii grid, save as png and return as numpy array
 def data_import_single_year(year, dataset) -> np.array:
     ascii_grid = np.loadtxt(f'Data/conc_no2_{year}/{dataset}_no2_{year}.asc', skiprows=6)
-    ascii_grid[ascii_grid==-999] = np.nan
-    ascii_grid[ascii_grid==-9999] = np.nan
+    ascii_grid[ascii_grid==-999] = 0
+    ascii_grid[ascii_grid==-9999] = 0
     img = plt.imshow(ascii_grid)
     # Create image
     plt.savefig(f"Results/Images/no2_{dataset}_{year}.png")
@@ -95,10 +95,10 @@ if __name__=="__main__":
     # NOTE: We only have data for 2011-2021 for emissions
     # NOTE: We only have data for 1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020 for company emissions
     # NOTE: Do we impute the missing data? Or we use 2015 + 2020 with 5 year interval?
-    dataset['rwc'][2010] 
-    dataset['conc'][2010]
-    dataset['company_emission'][2010]
-    dataset['company_count'][2010]
+    dataset['rwc'][2020]
+    dataset['conc'][2020]
+    print(dataset['company_emission'][2020])
+    dataset['company_count'][2020]
     
     #read the .csv file into a pandas df
     # df = pd.read_csv("Data/ERCompanyLevel.csv", header=0, sep=";") #company agents
