@@ -25,7 +25,8 @@ emissions = data_import_emissions() #all emissions from roads and country
 emissions_companies = data_import_emissions_companies() #all company rasters in dict (sum of emission + count)
 year = 2020 #year to train on
 normalize = True #normalize the values
-n_iter = 3 #number of iterations 
+n_iter = 5 #number of iterations 
+n_neighbors = 1 #number of neighbors to use
 Y = emissions['conc'][year+1]
 X1 = emissions['conc'][year]
 X2 = emissions_companies['company_emission'][year]
@@ -49,7 +50,7 @@ Y_new = []
 for y in range(len(tiles)):
     for x in range(len(tiles[y])):
         em = tiles[y][x].current_emission
-        neighbours = get_neighbours(tiles, (y,x), n=1)
+        neighbours = get_neighbours(tiles, (y,x), n=n_neighbors)
         nem = get_avg_emission(neighbours)
         ncomp = get_no_companies(neighbours)
         x_vals.append([em,nem,ncomp])
@@ -115,6 +116,9 @@ plt.show()
 # Plot the predicted values
 from data_import import mean_absolute_error
 plt.imshow(y_pred)
-plt.title(f'Trained: {year}, Predicted {year+1}, MAE: {round(mean_absolute_error(Y, y_pred), 2)}')
+plt.suptitle(f'Trained: {year}, Predicted: {year+1}')
+plt.title(f'Neighbors: {n_neighbors}, Iterations: {n_iter}, Scaling: {normalize}, MAE: {round(mean_absolute_error(Y, y_pred), 2)}',
+          fontdict={'fontsize': 10})
+plt.savefig(f'./results/predicted_{year}_{n_iter}_{normalize}.png')
 plt.show()
 
