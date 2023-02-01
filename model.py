@@ -16,7 +16,7 @@ def normalize_array(array):
 def renormalize_array(array, original_array):
     scaler = MinMaxScaler()
     scaler = scaler.fit(original_array)
-    # Transform the data to the normalized form
+    # Transform the data to the renormalized form
     original_data = scaler.inverse_transform(array)
     return original_data
 
@@ -31,7 +31,7 @@ X2 = emissions_companies['company_emission'][year]
 X3 = emissions_companies['company_count'][year]
 # normalize the values
 if normalize:
-    Y = normalize_array(Y)
+    Ys = normalize_array(Y)
     X1, X2, X3 = normalize_array(X1), normalize_array(X2), normalize_array(X3) 
 
 # create a grid of tiles
@@ -52,7 +52,7 @@ for y in range(len(tiles)):
         nem = get_avg_emission(neighbours)
         ncomp = get_no_companies(neighbours)
         x_vals.append([em,nem,ncomp])
-        Y_new.append(Y[y][x])
+        Y_new.append(Ys[y][x])
 x_vals = np.array(x_vals)
 x_vals[np.isnan(x_vals)] = 0
 Y_new = np.where(np.isnan(Y_new), 0, Y_new)
