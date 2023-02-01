@@ -3,8 +3,8 @@ import numpy as np
 # import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib.animation import FuncAnimation
-
 
 """_summary_
 
@@ -26,14 +26,15 @@ Returns:
 """
 
 # Import data from ascii grid, save as png and return as numpy array
-def data_import_single_year(year, dataset) -> np.array:
+def data_import_single_year(year, dataset, export = False) -> np.array:
     ascii_grid = np.loadtxt(f'Data/conc_no2_{year}/{dataset}_no2_{year}.asc', skiprows=6)
     ascii_grid[ascii_grid==-999] = 0
     ascii_grid[ascii_grid==-9999] = 0
-    img = plt.imshow(ascii_grid)
-    # Create image
-    plt.savefig(f"Results/Images/no2_{dataset}_{year}.png")
-    plt.close()
+    if export:
+        img = plt.imshow(ascii_grid)
+        # Create image
+        plt.savefig(f"Results/Images/no2_{dataset}_{year}.png")
+        plt.close()
     return ascii_grid
 
 # Create animation from list of arrays and save as gif
@@ -54,16 +55,17 @@ def animation(data, dataset, years, plot_speed_ms = 1000) -> None:
     return ani
 
 # Iterate over datasets (type + years) and create a list of arrays for country wide emissions
-def data_import_emissions(years = range(2011,2022), datasets = ['rwc', 'conc'], plot_speed_ms = 500) -> dict:
+def data_import_emissions(years = range(2011,2022), datasets = ['rwc', 'conc'], plot_speed_ms = 500, export = False) -> dict:
     #rwc -> emissions from roads
     #conc -> emmissions whole country
     result = dict()
     for dataset in datasets:
         data = []
         for year in years:
-            data_single_year = data_import_single_year(year, dataset)
+            data_single_year = data_import_single_year(year, dataset, export = export)
             data.append(data_single_year) #create list of arrays from raw data import
-        animation(data, dataset, years, plot_speed_ms) #animate the emission data over time
+        if export:
+            animation(data, dataset, years, plot_speed_ms) #animate the emission data over time
         data = {year : data for year, data in zip(years, data)} #create dict of arrays
         result[dataset] = data #add to result dict
     result['meta'] = np.loadtxt(f'Data/conc_no2_2021/conc_no2_2021.asc', max_rows=6, dtype=str) #add latest metadata
@@ -80,11 +82,30 @@ def data_import_emissions_companies(years = [1990, 1995, 2000, 2005, 2010, 2015,
             photo = Image.open(f"Results/company_{dataset}_{year}_1000x1000.tif")
             result[f'company_{dataset}'][year] = np.array(photo)
     return result
-            
+
+# MAE 
+def mean_absolute_error(y_true, y_pred) -> float:
+    return np.mean(np.abs(y_true - y_pred))
+
+# calculate baseline model scores
+def data_import_baseline_metrics(start_year = 2011):
+    data = data_import_emissions()
+    df = pd.DataFrame()
+    for year in range(start_year,2021):
+        y_true = data['conc'].get(year+1)
+        # simple forecast methods
+        naive = data['conc'].get(year) #naive (last data point)
+        sliding_window = list(data['conc'].values())[0:(year-start_year+1)] # sliding window average
+        average = sum(data['conc'].values()) / len(data['conc'])
+        baseline_metrics = {'year' : year+1,'naive' : mean_absolute_error(y_true, naive), 'average' : mean_absolute_error(y_true, average), 'metric' : 'MAE'}
+        df_temp = pd.DataFrame([baseline_metrics])
+        df = pd.concat([df, df_temp], ignore_index=True)
+    return df
+
 if __name__=="__main__":
 
     # Set the year range and animation speed for .gif
-    emissions = data_import_emissions() #all emissions from roads and country
+    emissions = data_import_emissions(export = True) #all emissions from roads and country
     emissions_companies = data_import_emissions_companies() #all company rasters in dict (sum of emission + count)
     dataset = {**emissions, **emissions_companies} #combine dicts
     dataset.keys() #rasters + metadata
@@ -100,6 +121,14 @@ if __name__=="__main__":
     print(dataset['company_emission'][2020])
     dataset['company_count'][2020]
     
+    # calculate baseline model scores      
+    baseline_metrics = data_import_baseline_metrics()
+    fig, ax = plt.subplots(1,2, figsize = (15,5))
+    ax[0].plot(baseline_metrics['year'], baseline_metrics['naive'])
+    ax[0].set_title(f'MAE using naive forecast {round(baseline_metrics["naive"].mean(), 2)}')
+    ax[1].plot(baseline_metrics['year'], baseline_metrics['average'])
+    ax[1].set_title(f'MAE using average forecast {round(baseline_metrics["average"].mean(), 2)}')
+    plt.show()
     #read the .csv file into a pandas df
     # df = pd.read_csv("Data/ERCompanyLevel.csv", header=0, sep=";") #company agents
     # summed = df[['Jaar','Emissie', 'Bedrijf']].groupby(['Jaar', 'Bedrijf']).sum('Emissie').reset_index()
