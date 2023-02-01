@@ -62,6 +62,7 @@ losses = [] #empty list to store the losses
 thetas = [] #empty list to store thetas
 n_iter = 3 #number of iterations 
 best_theta = np.array([np.inf for _ in range(3)]) #initialize best theta
+best_b = np.array([np.inf for _ in range(3)]) #initialize best theta
 for _ in range(n_iter): #run the model n_iter times
     l = []
     b,theta=initialize(3) #initialize b and theta 
@@ -76,15 +77,15 @@ for _ in range(n_iter): #run the model n_iter times
         print("After update -Bias: ",b,"theta: ",theta) #print the values
         print(f"calculated loss after: {loss}") #print the loss
         if loss < l[i-1]:
-            best_theta = theta #update the best theta if the loss is lower
+            best_b, best_theta = b, theta #update the best theta if the loss is lower
     losses.append(l) 
     thetas.append(best_theta)
 
 # convert to final prediction
 loss_min = min([min(l) for l in losses])==[min(l) for l in losses] # get the id of the lowest loss
 theta_min = [t for t, l in zip(thetas, loss_min) if l][0] # get the theta with the lowest loss
-b,theta=initialize(3) # reinitialize b and theta
-y_pred = predict_Y(b,theta_min,x_vals) # predict the values with the lowest theta
+#b,theta=initialize(3) # reinitialize b and theta
+y_pred = predict_Y(best_b,theta_min,x_vals) # predict the values with the lowest theta
 y_pred.shape = (320, 280) # reshape to the original shape
 if normalize:
     y_pred = renormalize_array(y_pred, Y) # renormalize the values
