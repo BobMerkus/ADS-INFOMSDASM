@@ -121,14 +121,6 @@ if __name__=="__main__":
     print(dataset['company_emission'][2020])
     dataset['company_count'][2020]
     
-    # calculate baseline model scores      
-    baseline_metrics = data_import_baseline_metrics()
-    fig, ax = plt.subplots(1,2, figsize = (15,5))
-    ax[0].plot(baseline_metrics['year'], baseline_metrics['naive'])
-    ax[0].set_title(f'MAE using naive forecast {round(baseline_metrics["naive"].mean(), 2)}')
-    ax[1].plot(baseline_metrics['year'], baseline_metrics['average'])
-    ax[1].set_title(f'MAE using average forecast {round(baseline_metrics["average"].mean(), 2)}')
-    plt.show()
     #read the .csv file into a pandas df
     # df = pd.read_csv("Data/ERCompanyLevel.csv", header=0, sep=";") #company agents
     # summed = df[['Jaar','Emissie', 'Bedrijf']].groupby(['Jaar', 'Bedrijf']).sum('Emissie').reset_index()
