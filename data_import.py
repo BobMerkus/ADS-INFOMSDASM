@@ -5,6 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.animation import FuncAnimation
+from sklearn.preprocessing import MinMaxScaler
 
 """_summary_
 
@@ -31,10 +32,11 @@ def data_import_single_year(year, dataset, export = False) -> np.array:
     ascii_grid[ascii_grid==-999] = 0
     ascii_grid[ascii_grid==-9999] = 0
     if export:
-        img = plt.imshow(ascii_grid)
+        plt.imshow(ascii_grid)
         # Create image
-        plt.savefig(f"Results/Images/no2_{dataset}_{year}.png")
-        plt.close()
+        plt.savefig(f"Results/Images/no2_{dataset}_{year}.png", dpi=300)
+        plt.title(f"NO2 - {dataset} - {year}")
+        plt.close('all')
     return ascii_grid
 
 # Create animation from list of arrays and save as gif
@@ -102,6 +104,74 @@ def data_import_baseline_metrics(start_year = 2011):
         df = pd.concat([df, df_temp], ignore_index=True)
     return df
 
+# retrieve the coordinates of the neighbour cells
+def get_neighbours(array, coord, n=1) -> np.array:
+    y, x = coord #get coordinates
+    y_lim, x_lim = array.shape #get array dimensions
+    neighbours = []
+    neighbour_coords = []
+    # iterate over the neighbour cells
+    for i in range(y-n, y+n+1):
+        for j in range(x-n, x+n+1):
+            if i >= 0 and i < y_lim and j >= 0 and j < x_lim: #check if the neighbour cell is within the array
+                neighbour_coords.append((i, j)) #add the coordinates of the neighbour cell to the list
+                neighbours.append(array[i][j]) #add the value of the neighbour cell to the list
+            else:
+                neighbours.append(0) #if the neighbour cell is outside the array, add 0 to the list
+    dim = (n*2) + 1 #calculate the dimension of the neighbour array
+    neighbours = np.array(neighbours).reshape(dim, dim) #reshape the neighbour array (e.g. n=1 -> 3x3)
+    return neighbours
+
+# Convert array Y and list of X variables to keras friendly array
+def to_keras_array(X: list[np.array], Y = np.array, n_neighbors=1) -> tuple:
+    X_arrays = []
+    Y_array = []
+    for i in range(Y.shape[0]): #iterate over the rows y
+        for j in range(Y.shape[1]): #iterate over the columns x
+            X_arrays.append(np.array([get_neighbours(x, coord=(i,j), n=n_neighbors) for x in X])) #get the neighbours of the cell and add them to the array
+            Y_array.append(Y[i][j]) #add the outcome value of the cell to the array
+    # convert to numpy arrays
+    X = np.array(X_arrays)
+    Y = np.array(Y_array)
+    return Y, X
+
+# Import data for a single year 
+def data_import(year, n_neighbors, normalize = True, pre_process_method = "interpolated") -> tuple:
+    emissions = data_import_emissions() #all emissions from roads and country
+    print(f"Importing data for {year} with {n_neighbors} neighbors, this can take a while...")
+    # DATA IMPORT FOR TRAINING YEAR
+    X1 = emissions['conc'][year] #this year (x)
+    X2 = np.array(Image.open(f"Results/{pre_process_method}_company_emission_{year}.tif")) #emissions_companies['company_emission'][year]
+    X3 = np.array(Image.open(f"Results/{pre_process_method}_company_count_{year}.tif")) #emissions_companies['company_count'][year]
+    if year < 2021:
+        Y = emissions['conc'][year+1] #next year (y)
+    else:
+        print("No data available beyond 2021, returning data for 2021 instead")
+        Y = X1 #used for scaling purposes
+    # normalize the values
+    if normalize:
+        X1, X2, X3 = normalize_array(X1), normalize_array(X2), normalize_array(X3) 
+        Ys = normalize_array(Y)
+    # Convert the arrays to mulitdimensional arrays
+    Ys, Xs = to_keras_array(Y = Ys, X = [X1, X2, X3], n_neighbors=n_neighbors)
+    return Y, Ys, Xs
+
+# Min max scaler
+def normalize_array(array):
+    scaler = MinMaxScaler()
+    scaler = scaler.fit(array)
+    # Transform the data to the normalized form
+    normalized_data = scaler.transform(array)
+    return normalized_data
+
+# Reverse min max scaler
+def renormalize_array(array, original_array):
+    scaler = MinMaxScaler()
+    scaler = scaler.fit(original_array)
+    # Transform the data to the renormalized form
+    original_data = scaler.inverse_transform(array)
+    return original_data
+
 if __name__=="__main__":
 
     # Set the year range and animation speed for .gif
@@ -126,14 +196,8 @@ if __name__=="__main__":
     # summed = df[['Jaar','Emissie', 'Bedrijf']].groupby(['Jaar', 'Bedrijf']).sum('Emissie').reset_index()
     # df[['Xcoord', 'Ycoord', 'Bedrijf']]    
     
-    # # Tiff to 
-    # #https://gis.stackexchange.com/questions/80774/translating-reposition-tiff-raster-layer-in-qgis
-    # from osgeo import gdal
-    # gdal.AllRegister()
-    # rast_src = gdal.Open('Results/Images/company_count_2020_1000x1000.tif', 1 )
-    # gt = rast_src.GetGeoTransform()
-    # gtl = list(gt)
-    # gtl[0] -= 200
-    # gtl[3] -= 100
-    # rast_src.SetGeoTransform(tuple(gtl))
-    # rast_src = None
+
+    Y, Ys, Xs = data_import(2011, n_neighbors=1) # Import the data
+    Y, Ys, Xs = data_import(2021, n_neighbors=1) # Import the data
+    
+    Y.min(), Y.max(), Ys.min(), Ys.max(), Xs.min(), Xs.max() # Check the min and max values for scaling if you want

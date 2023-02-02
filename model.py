@@ -1,24 +1,7 @@
 import numpy as np
-from data_import import data_import_emissions, data_import_emissions_companies, data_import_baseline_metrics, mean_absolute_error
+from data_import import data_import_emissions, data_import_emissions_companies, data_import_baseline_metrics, mean_absolute_error, normalize_array, renormalize_array
 from TransferOptimizer import Tile, get_neighbours, get_avg_emission, get_no_companies, initialize, get_cost, update_theta, predict_Y
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-
-# Min max scaler
-def normalize_array(array):
-    scaler = MinMaxScaler()
-    scaler = scaler.fit(array)
-    # Transform the data to the normalized form
-    normalized_data = scaler.transform(array)
-    return normalized_data
-
-# Reverse min max scaler
-def renormalize_array(array, original_array):
-    scaler = MinMaxScaler()
-    scaler = scaler.fit(original_array)
-    # Transform the data to the renormalized form
-    original_data = scaler.inverse_transform(array)
-    return original_data
 
 # Import the data
 emissions = data_import_emissions() #all emissions from roads and country
@@ -38,10 +21,10 @@ if normalize:
 
 # create a grid of tiles
 tiles = []
-for y in range(len(X1)):
+for y in range(Y.shape[0]):
     row = []
-    for x in range(len(X1[0])):
-        row.append(Tile(X1[y,x], X3[y,x], X2[y,x]))
+    for x in range(Y.shape[1]):
+        row.append(Tile(y,x,X1[y,x], X3[y,x], X2[y,x]))
     tiles.append(row)
 
 # Get neighborhood values
@@ -119,6 +102,6 @@ plt.imshow(y_pred)
 plt.suptitle(f'Trained: {year}, Predicted: {year+1}')
 plt.title(f'Neighbors: {n_neighbors}, Iterations: {n_iter}, Scaling: {normalize}, MAE: {round(mean_absolute_error(Y, y_pred), 2)}',
           fontdict={'fontsize': 10})
-plt.savefig(f'./results/predicted_{year}_{n_iter}_{normalize}.png')
+plt.savefig(f'./results/predicted_{year}_{n_iter}_{n_neighbors}_{normalize}.png')
 plt.show()
 

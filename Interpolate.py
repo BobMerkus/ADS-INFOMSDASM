@@ -14,13 +14,15 @@ for y in range(len(ds_matrix[0])):
     interpolated.append(row) #add row to result
 interpolated = np.transpose(interpolated, (2, 0, 1)) #transpose to get correct shape
 
-# Save interpolated emissions
+# # Save interpolated emissions
 year = 1990
 for img in interpolated:
     result = Image.fromarray(img.astype(np.uint8))
-    result.save(f"Results/{data}_{year}_interpolated_1000x1000.tif")
+    result.save(f"Results/interpolated_{data}_{year}.tif")
     year +=1
 
+dataset['company_emission'][2020].max()
+interpolated[10].max()
 # Visualise
 from matplotlib import pyplot as plt
 # Create a figure and array of axes objects with two subplots
