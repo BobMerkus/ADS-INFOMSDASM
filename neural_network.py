@@ -34,7 +34,7 @@ if __name__=='__main__':
     train_years = [2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
     test_year = 2020
     normalize = True #normalize the values
-    n_neighbors = 3 #number of neighbors to use
+    n_neighbors = 10 #number of neighbors to use
     window_size = n_neighbors*2+1
     input_shape = (3, window_size, window_size) #input shape for the model (number of features, x, y)
     epochs=50
@@ -104,8 +104,9 @@ if __name__=='__main__':
 
     # NOTE:: Bias because of interpolation with time series, we should actually use lookforward with missing company data 
     # NOTE:: 10 neighbors (3, 21, 21) = 1.323 related cells -> 179.841 parameters in ANN to estimate
-    # NOTE:: (89.600, 3, 21, 21) training dimension -> 320 x 260 * 3 * 21 * 21 = 118.540.800 data points per year
+    # NOTE:: (89.600, 3, 21, 21) training dimension -> we have 89.600 cells to train/test on in a year.  320 x 260 * 3 * 21 * 21 = 118.540.800 data points per year
     # NOTE:: 10 years to train on: 1.185.408.000 data points
+    # NOTE:: 1.185.408.000 / 179.841 = 6.600 data points per parameter
     # NOTE:: Warning after n_neighbors > 10 ?
     
     # Predict the values for the test years
